@@ -12,16 +12,6 @@
 
 #include "get_next_line.h"
 
-static int	strfree(char **s)
-{
-	if (*s)
-	{
-		free(*s);
-		*s = NULL;
-	}
-	return (0);
-}
-
 static int	check_tail(char **tail, char **line)
 {
 	char	*tmp;
@@ -32,17 +22,17 @@ static int	check_tail(char **tail, char **line)
 	{
 		tmp[0] = '\0';
 		if (!(*line = ft_strjoin(*line, *tail)))
-			return (strfree(&tmp_line) + strfree(tail) - 1);
+			return (-1);
 		tmp++;
 		*tail = ft_strcpy(*tail, tmp);
-		return (strfree(&tmp_line) + 1);
+		free(tmp_line);
+		return (1);
 	}
-	else
-	{
-		if (!(*line = ft_strjoin(*line, *tail)))
-			return (strfree(&tmp_line) + strfree(tail) - 1);
-		return (strfree(&tmp_line) + strfree(tail) + 2);
-	}
+	if (!(*line = ft_strjoin(*line, *tail)))
+		return (-1);
+	free(tmp_line);
+	free(*tail);
+	return (2);
 }
 
 static int	check_buf(char *buf, char **tail, char **line)
@@ -55,18 +45,18 @@ static int	check_buf(char *buf, char **tail, char **line)
 	{
 		tmp[0] = '\0';
 		if (!(*line = ft_strjoin(*line, buf)))
-			return (strfree(&tmp_line) + strfree(&buf) - 1);
+			return (-1);
 		tmp++;
 		if (!(*tail = ft_strjoin(tmp, "")))
-			return (strfree(&tmp_line) + strfree(&buf) - 1);
-		return (strfree(&tmp_line) + strfree(&buf) + 1);
+			return (-1);
+		free(tmp_line);
+		free(buf);
+		return (1);
 	}
-	else
-	{
-		if (!(*line = ft_strjoin(*line, buf)))
-			return (strfree(&tmp_line) + strfree(&buf) - 1);
-		return (strfree(&tmp_line) + 2);
-	}
+	if (!(*line = ft_strjoin(*line, buf)))
+		return (-1);
+	free(tmp_line);
+	return (2);
 }
 
 int			get_line(int fd, char **line, char **tail, t_list **list)
@@ -79,16 +69,17 @@ int			get_line(int fd, char **line, char **tail, t_list **list)
 	if (*tail && (res = check_tail(tail, line)) != 2)
 		return ((res == -1) ? ft_lstdel(list, fd) : res);
 	if (!(buf = malloc(sizeof(char) * (BUFFER_SIZE + 1))))
-		return (strfree(tail) + ft_lstdel(list, fd) - 1);
+		return (ft_lstdel(list, fd) - 1);
 	while ((readed = read(fd, buf, BUFFER_SIZE)))
 	{
 		if (readed < 0)
-			return (strfree(&buf) + ft_lstdel(list, fd) - 1);
+			return (ft_lstdel(list, fd) - 1);
 		buf[readed] = '\0';
 		if ((res = check_buf(buf, tail, line)) != 2)
 			return (res != 1 ? ft_lstdel(list, fd) : res);
 	}
-	return (ft_lstdel(list, fd) + strfree(&buf));
+	free(buf);
+	return (ft_lstdel(list, fd));
 }
 
 int			get_next_line(int fd, char **line)
